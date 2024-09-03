@@ -1,5 +1,6 @@
 package io.github.devwanderson.todolist.task;
 
+import io.github.devwanderson.todolist.utils.Utils;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -39,16 +40,26 @@ public class TaskController {
     @GetMapping("/")
     public List<TaskModel> list(HttpServletRequest request) {
         var idUser = request.getAttribute("idUser");
-        var tasks = this.taskRepository.findByIdUser((UUID) idUser);
-        return tasks;
+        return this.taskRepository.findByIdUser((UUID) idUser);
     }
 
-    //checar o path
+    //Verificar sempre se o servletPath não está 'travado' apenas para o contexto definido
     @PutMapping("/{id}")
-    public TaskModel update(@RequestBody TaskModel taskModel, HttpServletRequest request, @PathVariable UUID id){
+    public ResponseEntity update(@RequestBody TaskModel taskModel, HttpServletRequest request, @PathVariable UUID id){
+        var task = this.taskRepository.findById(id).orElse(null);
+
+        if (task == null){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Tarefa não encontrada!");
+        }
+
         var idUser = request.getAttribute("idUser");
-        taskModel.setIdUser((UUID) idUser);
-        taskModel.setId(id);
-        return this.taskRepository.save(taskModel);
+
+        if (!task.getIdUser().equals(idUser)){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Usuário sem permissão para alterar a tarefa");
+        }
+
+        Utils.copyNonNullProperties(taskModel, task);
+        var taskUpdated = this.taskRepository.save(task);
+        return ResponseEntity.ok().body(this.taskRepository.save(taskUpdated));
     }
 }

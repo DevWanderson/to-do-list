@@ -9,3 +9,6 @@ COPY . .
 RUN apt-get install maven -y
 RUN mvn clean install
 
+COPY --from=build /target/todolist-0.0.1-WA.jar app.jar
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

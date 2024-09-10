@@ -14,8 +14,8 @@
 	<name>ToDoList</name>
 	<description>Gerenciador de tarefas</description>
 	<properties>
-		<!-- Erro de versão não suportada: https://stackoverflow.com/questions/67098514/java-error-release-version-17-not-supported -->
-		<java.version>17.0.11</java.version>
+		<!--O erro foi corrigido verificando novamente as variáveis de ambiente 'JAVA_HOME'-->
+		<java.version>17</java.version>
 	</properties>
 	<dependencies>
 		<dependency>

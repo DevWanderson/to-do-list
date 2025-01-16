@@ -2,11 +2,14 @@ package io.github.devwanderson.todolist.task;
 
 import io.github.devwanderson.todolist.utils.Utils;
 import jakarta.servlet.http.HttpServletRequest;
+import org.keycloak.KeycloakPrincipal;
+import org.keycloak.adapters.springsecurity.token.KeycloakAuthenticationToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -18,9 +21,9 @@ public class TaskController {
     private ITaskRepository taskRepository;
 
     @PostMapping("/")
-    public ResponseEntity create (@RequestBody TaskModel taskModel, HttpServletRequest request){
-        var idUser = request.getAttribute("idUser");
-        taskModel.setIdUser((UUID) idUser);
+    public ResponseEntity<?> create (@RequestBody TaskModel taskModel, Principal principal){
+        UUID idUser = getKeycloakUserId(principal);
+        taskModel.setIdUser(idUser);
 
         //DATETIME VERIFICATION
         var currentDate = LocalDateTime.now();
@@ -37,22 +40,31 @@ public class TaskController {
         return ResponseEntity.status(HttpStatus.OK).body(task);
     }
 
+    private UUID getKeycloakUserId(Principal principal){
+        if (principal instanceof KeycloakAuthenticationToken) {
+            KeycloakAuthenticationToken keycloakToken = (KeycloakAuthenticationToken) principal;
+            KeycloakPrincipal<?> keycloakPrincipal = (KeycloakPrincipal<?>) keycloakToken.getPrincipal();
+            String id = keycloakPrincipal.getKeycloakSecurityContext().getToken().getSubject();
+            return UUID.fromString(id);
+        }
+        return null;
+    }
+
     @GetMapping("/")
-    public List<TaskModel> list(HttpServletRequest request) {
-        var idUser = request.getAttribute("idUser");
-        return this.taskRepository.findByIdUser((UUID) idUser);
+    public List<TaskModel> list(Principal principal) {
+        UUID idUser = getKeycloakUserId(principal);
+        return this.taskRepository.findByIdUser(idUser);
     }
 
     //Verificar sempre se o servletPath não está 'travado' apenas para o contexto definido
     @PutMapping("/{id}")
-    public ResponseEntity update(@RequestBody TaskModel taskModel, HttpServletRequest request, @PathVariable UUID id){
+    public ResponseEntity<?> update(@RequestBody TaskModel taskModel, Principal principal, @PathVariable UUID id){
         var task = this.taskRepository.findById(id).orElse(null);
+        UUID idUser = getKeycloakUserId(principal);
 
         if (task == null){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Tarefa não encontrada!");
         }
-
-        var idUser = request.getAttribute("idUser");
 
         if (!task.getIdUser().equals(idUser)){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Usuário sem permissão para alterar a tarefa");

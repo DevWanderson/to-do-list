@@ -1,4 +1,3 @@
-package io.github.devwanderson.todolist.filter;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
 import io.github.devwanderson.todolist.user.IUserRepository;
